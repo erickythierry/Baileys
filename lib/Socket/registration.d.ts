@@ -4,7 +4,7 @@ import { KeyPair, SignedKeyPair, SocketConfig } from '../Types';
 export declare const makeRegistrationSocket: (config: SocketConfig) => {
     register: (code: string) => Promise<ExistsResponse>;
     requestRegistrationCode: (registrationOptions?: RegistrationOptions) => Promise<ExistsResponse>;
-    logger: import("pino").Logger<import("pino").LoggerOptions>;
+    logger: import("pino").Logger;
     getOrderDetails: (orderId: string, tokenBase64: string) => Promise<import("../Types").OrderDetails>;
     getCatalog: ({ jid, limit, cursor }: import("../Types").GetCatalogOptions) => Promise<{
         products: import("../Types").Product[];

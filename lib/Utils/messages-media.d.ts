@@ -1,6 +1,7 @@
 /// <reference types="node" />
 /// <reference types="node" />
 /// <reference types="node" />
+/// <reference types="node" />
 import { Boom } from '@hapi/boom';
 import { AxiosRequestConfig } from 'axios';
 import type { Logger } from 'pino';
