@@ -23,7 +23,7 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
     getPrivacyTokens: (jids: string[]) => Promise<import("../WABinary").BinaryNode>;
     assertSessions: (jids: string[], force: boolean) => Promise<boolean>;
-    relayMessage: (jid: string, message: import("../Types").WAProto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: import("../Types").MessageRelayOptions) => Promise<string>;
+    relayMessage: (jid: string, message: import("../Types").WAProto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, cachedGroupMetadata, statusJidList }: import("../Types").MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: import("../Types").MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: import("../Types").WAProto.IMessageKey[], type: import("../Types").MessageReceiptType) => Promise<void>;
     getButtonArgs: (message: import("../Types").WAProto.IMessage) => {
@@ -40,6 +40,9 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
     groupMetadata: (jid: string) => Promise<import("../Types").GroupMetadata>;
     groupCreate: (subject: string, participants: string[]) => Promise<import("../Types").GroupMetadata>;
     groupLeave: (id: string) => Promise<void>;
+    /** the network code of your mobile network
+     * @see {@link https://de.wikipedia.org/wiki/Mobile_Network_Code}
+     */
     groupUpdateSubject: (jid: string, subject: string) => Promise<void>;
     groupRequestParticipantsList: (jid: string) => Promise<{
         [key: string]: string;

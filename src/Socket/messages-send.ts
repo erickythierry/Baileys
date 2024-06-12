@@ -17,7 +17,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		generateHighQualityLinkPreview,
 		options: axiosOptions,
 		patchMessageBeforeSending,
-		cachedGroupMetadata,
 	} = config
 	const sock = makeGroupsSocket(config)
 	const {
@@ -31,7 +30,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		generateMessageTag,
 		sendNode,
 		groupMetadata,
-		groupToggleEphemeral,
+		groupToggleEphemeral
 	} = sock
 
 	const userDevicesCache = config.userDevicesCache || new NodeCache({
@@ -138,6 +137,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	/** Fetch all the devices we've to send a message to */
+
 	const getUSyncDevices = async (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
 		const deviceResults: JidWithDevice[] = []
 
@@ -194,8 +194,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				},
 			],
 		}
-		const result = await query(iq)
-		const extracted = extractDeviceJids(result, authState.creds.me!.id, ignoreZeroDevices)
+		const result = users.length ? await query(iq) : { tag: '', attrs: {}, content: [] }
+		const extracted = users.length ? extractDeviceJids(result, authState.creds.me!.id, ignoreZeroDevices) : []
 		const deviceMap: { [_: string]: JidWithDevice[] } = {}
 
 		for (const item of extracted) {
@@ -303,7 +303,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	const relayMessage = async (
 		jid: string,
 		message: proto.IMessage,
-		{ messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: MessageRelayOptions
+		{ messageId: msgId, participant, additionalAttributes, useUserDevicesCache, cachedGroupMetadata, statusJidList }: MessageRelayOptions
 	) => {
 		const meId = authState.creds.me!.id
 
@@ -317,7 +317,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		msgId = msgId || generateMessageID()
 		useUserDevicesCache = useUserDevicesCache !== false
-		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
 
 		const participants: BinaryNode[] = []
 		const destinationJid = (!isStatus) ? jidEncode(user, isLid ? 'lid' : isGroup ? 'g.us' : 's.whatsapp.net') : statusJid
@@ -349,10 +348,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				if (isGroup || isStatus) {
 					const [groupData, senderKeyMap] = await Promise.all([
 						(async () => {
-							let groupData = useCachedGroupMetadata && cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined
-							if (groupData && Array.isArray(groupData?.participants)) {
+							let groupData = cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined
+							if (groupData) {
 								logger.trace({ jid, participants: groupData.participants.length }, 'using cached group metadata')
-							} else {
+							}
+
+							if (!groupData && !isStatus) {
 								groupData = await groupMetadata(jid)
 							}
 
@@ -758,7 +759,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalAttributes.edit = '1'
 				}
 
-				await relayMessage(jid, fullMsg.message!, { messageId: fullMsg.key.id!, useCachedGroupMetadata: options.useCachedGroupMetadata, additionalAttributes, statusJidList: options.statusJidList })
+				await relayMessage(jid, fullMsg.message!, { messageId: fullMsg.key.id!, cachedGroupMetadata: options.cachedGroupMetadata, additionalAttributes, statusJidList: options.statusJidList })
 				if (config.emitOwnEvents) {
 					process.nextTick(() => {
 						processingMutex.mutex(() => (

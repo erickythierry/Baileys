@@ -61,9 +61,6 @@ export declare const makeChatsSocket: (config: SocketConfig) => {
         creds: import("../Types").AuthenticationCreds;
         keys: import("../Types").SignalKeyStoreWithTransaction;
     };
-    /**
-     * Star or Unstar a message
-     */
     signalRepository: import("../Types").SignalRepository;
     user: import("../Types").Contact | undefined;
     generateMessageTag: () => string;
@@ -75,9 +72,6 @@ export declare const makeChatsSocket: (config: SocketConfig) => {
     logout: (msg?: string | undefined) => Promise<void>;
     end: (error: Error | undefined) => void;
     onUnexpectedError: (err: Error | Boom<any>, msg: string) => void;
-    /**
-     * Adds label for the chats
-     */
     uploadPreKeys: (count?: number) => Promise<void>;
     uploadPreKeysToServerIfRequired: () => Promise<void>;
     requestPairingCode: (phoneNumber: string) => Promise<string>;
