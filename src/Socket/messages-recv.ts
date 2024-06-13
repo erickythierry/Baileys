@@ -556,7 +556,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				const msgRelayOpts: MessageRelayOptions = { messageId: ids[i] }
 
 				if (sendToAll) {
-					msgRelayOpts.useUserDevicesCache = false
+					msgRelayOpts.useUserDevicesCache = true
 				} else {
 					msgRelayOpts.participant = {
 						jid: participant,
@@ -643,7 +643,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							if (key.fromMe) {
 								try {
 									logger.debug({ attrs, key }, 'recv retry request')
-									// await sendMessagesAgain(key, ids, retryNode!)
+									await sendMessagesAgain(key, ids, retryNode!)
 								} catch (error) {
 									logger.error({ key, ids, trace: error.stack }, 'error in sending message again')
 								}
