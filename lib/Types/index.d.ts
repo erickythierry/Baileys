@@ -14,6 +14,21 @@ import { SocketConfig } from './Socket';
 export type UserFacingSocketConfig = Partial<SocketConfig> & {
     auth: AuthenticationState;
 };
+export type BrowsersMap = {
+    ubuntu(browser: string): [string, string, string];
+    macOS(browser: string): [string, string, string];
+    baileys(browser: string): [string, string, string];
+    windows(browser: string): [string, string, string];
+    appropriate(browser: string): [string, string, string];
+};
+export type valueReplacer = {
+    data: number[];
+    type: string;
+};
+export type valueReviver = {
+    data: string;
+    type: string;
+};
 export declare enum DisconnectReason {
     connectionClosed = 428,
     connectionLost = 408,

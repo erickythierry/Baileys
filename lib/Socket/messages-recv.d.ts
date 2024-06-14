@@ -7,9 +7,14 @@ export declare const makeMessagesRecvSocket: (config: SocketConfig) => {
     sendMessageAck: ({ tag, attrs, content }: BinaryNode) => Promise<void>;
     sendRetryRequest: (node: BinaryNode, forceIncludeKeys?: boolean) => Promise<void>;
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
+    offerCall: (toJid: string, isVideo?: boolean) => Promise<{
+        callId: string;
+        toJid: string;
+        isVideo: boolean;
+    }>;
     getPrivacyTokens: (jids: string[]) => Promise<BinaryNode>;
     assertSessions: (jids: string[], force: boolean) => Promise<boolean>;
-    relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, cachedGroupMetadata, statusJidList }: MessageRelayOptions) => Promise<string>;
+    relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: proto.IMessageKey[], type: MessageReceiptType) => Promise<void>;
     getButtonArgs: (message: proto.IMessage) => {
@@ -20,6 +25,13 @@ export declare const makeMessagesRecvSocket: (config: SocketConfig) => {
     waUploadToServer: import("../Types").WAMediaUploadFunction;
     fetchPrivacySettings: (force?: boolean) => Promise<{
         [_: string]: string;
+    }>;
+    getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<import("../WABinary").JidWithDevice[]>;
+    createParticipantNodes: (jids: string[], message: proto.IMessage, extraAttrs?: {
+        [key: string]: string;
+    } | undefined) => Promise<{
+        nodes: BinaryNode[];
+        shouldIncludeDeviceIdentity: boolean;
     }>;
     updateMediaMessage: (message: proto.IWebMessageInfo) => Promise<proto.IWebMessageInfo>;
     sendMessage: (jid: string, content: import("../Types").AnyMessageContent, options?: import("../Types").MiscMessageGenerationOptions) => Promise<proto.WebMessageInfo | undefined>;
@@ -65,10 +77,16 @@ export declare const makeMessagesRecvSocket: (config: SocketConfig) => {
         jid: string;
     }[]>;
     fetchBlocklist: () => Promise<string[]>;
-    fetchStatus: (jid: string) => Promise<{
-        status: string | undefined;
+    fetchStatus: (...jids: string[]) => Promise<{
+        user: string;
+        status: string | null;
         setAt: Date;
-    } | undefined>;
+    }[]>;
+    fetchDisappearingDuration: (...jids: string[]) => Promise<{
+        user: string;
+        duration: number;
+        setAt: Date;
+    }[]>;
     updateProfilePicture: (jid: string, content: import("../Types").WAMediaUpload) => Promise<void>;
     removeProfilePicture: (jid: string) => Promise<void>;
     updateProfileStatus: (status: string) => Promise<void>;
@@ -101,6 +119,8 @@ export declare const makeMessagesRecvSocket: (config: SocketConfig) => {
         createBufferedFunction<A extends any[], T_1>(work: (...args: A) => Promise<T_1>): (...args: A) => Promise<T_1>;
         flush(force?: boolean | undefined): boolean;
         isBuffering(): boolean;
+        ping: number;
+        lastPings: number[];
     };
     authState: {
         creds: import("../Types").AuthenticationCreds;

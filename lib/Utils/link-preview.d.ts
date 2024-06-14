@@ -10,6 +10,7 @@ export type URLGenerationOptions = {
         headers?: AxiosRequestConfig<{}>['headers'];
     };
     uploadImage?: WAMediaUploadFunction;
+    blacklistLinkPreview: string[];
     logger?: Logger;
 };
 /**

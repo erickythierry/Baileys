@@ -21,9 +21,14 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
     sendMessageAck: ({ tag, attrs, content }: import("../WABinary").BinaryNode) => Promise<void>;
     sendRetryRequest: (node: import("../WABinary").BinaryNode, forceIncludeKeys?: boolean) => Promise<void>;
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
+    offerCall: (toJid: string, isVideo?: boolean) => Promise<{
+        callId: string;
+        toJid: string;
+        isVideo: boolean;
+    }>;
     getPrivacyTokens: (jids: string[]) => Promise<import("../WABinary").BinaryNode>;
     assertSessions: (jids: string[], force: boolean) => Promise<boolean>;
-    relayMessage: (jid: string, message: import("../Types").WAProto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, cachedGroupMetadata, statusJidList }: import("../Types").MessageRelayOptions) => Promise<string>;
+    relayMessage: (jid: string, message: import("../Types").WAProto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: import("../Types").MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: import("../Types").MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: import("../Types").WAProto.IMessageKey[], type: import("../Types").MessageReceiptType) => Promise<void>;
     getButtonArgs: (message: import("../Types").WAProto.IMessage) => {
@@ -34,6 +39,13 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
     waUploadToServer: import("../Types").WAMediaUploadFunction;
     fetchPrivacySettings: (force?: boolean) => Promise<{
         [_: string]: string;
+    }>;
+    getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<import("../WABinary").JidWithDevice[]>;
+    createParticipantNodes: (jids: string[], message: import("../Types").WAProto.IMessage, extraAttrs?: {
+        [key: string]: string;
+    } | undefined) => Promise<{
+        nodes: import("../WABinary").BinaryNode[];
+        shouldIncludeDeviceIdentity: boolean;
     }>;
     updateMediaMessage: (message: import("../Types").WAProto.IWebMessageInfo) => Promise<import("../Types").WAProto.IWebMessageInfo>;
     sendMessage: (jid: string, content: import("../Types").AnyMessageContent, options?: import("../Types").MiscMessageGenerationOptions) => Promise<import("../Types").WAProto.WebMessageInfo | undefined>;
@@ -82,10 +94,19 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
         jid: string;
     }[]>;
     fetchBlocklist: () => Promise<string[]>;
-    fetchStatus: (jid: string) => Promise<{
-        status: string | undefined;
+    fetchStatus: (...jids: string[]) => Promise<{
+        /**
+         * Registers the phone number on whatsapp with the received OTP code.
+         */
+        user: string;
+        status: string | null;
         setAt: Date;
-    } | undefined>;
+    }[]>;
+    fetchDisappearingDuration: (...jids: string[]) => Promise<{
+        user: string;
+        duration: number;
+        setAt: Date;
+    }[]>;
     updateProfilePicture: (jid: string, content: import("../Types").WAMediaUpload) => Promise<void>;
     removeProfilePicture: (jid: string) => Promise<void>;
     updateProfileStatus: (status: string) => Promise<void>;
@@ -118,6 +139,8 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
         createBufferedFunction<A extends any[], T_1>(work: (...args: A) => Promise<T_1>): (...args: A) => Promise<T_1>;
         flush(force?: boolean | undefined): boolean;
         isBuffering(): boolean;
+        ping: number;
+        lastPings: number[];
     };
     authState: {
         creds: import("../Types").AuthenticationCreds;

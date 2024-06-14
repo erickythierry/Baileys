@@ -93,6 +93,7 @@ export declare const getWAUploadToServer: ({ customUploadHosts, fetchAgent, logg
  */
 export declare const encryptMediaRetryRequest: (key: proto.IMessageKey, mediaKey: Buffer | Uint8Array, meId: string) => BinaryNode;
 export declare const decodeMediaRetryNode: (node: BinaryNode) => {
+    /** generates all the keys required to encrypt/decrypt & sign a media message */
     key: proto.IMessageKey;
     media?: {
         ciphertext: Uint8Array;

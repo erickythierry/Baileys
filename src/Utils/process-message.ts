@@ -308,6 +308,10 @@ const processMessage = async(
 		const participantsIncludesMe = () => participants.find(jid => areJidsSameUser(meId, jid))
 
 		switch (message.messageStubType) {
+		case WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER:
+			participants = message.messageStubParameters || []
+			emitParticipantsUpdate('modify')
+			break
 		case WAMessageStubType.GROUP_PARTICIPANT_LEAVE:
 		case WAMessageStubType.GROUP_PARTICIPANT_REMOVE:
 			participants = message.messageStubParameters || []
@@ -316,7 +320,6 @@ const processMessage = async(
 			if(participantsIncludesMe()) {
 				chat.readOnly = true
 			}
-
 			break
 		case WAMessageStubType.GROUP_PARTICIPANT_ADD:
 		case WAMessageStubType.GROUP_PARTICIPANT_INVITE:
@@ -325,7 +328,6 @@ const processMessage = async(
 			if(participantsIncludesMe()) {
 				chat.readOnly = false
 			}
-
 			emitParticipantsUpdate('add')
 			break
 		case WAMessageStubType.GROUP_PARTICIPANT_DEMOTE:

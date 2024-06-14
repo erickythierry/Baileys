@@ -53,10 +53,16 @@ export declare const makeGroupsSocket: (config: SocketConfig) => {
         jid: string;
     }[]>;
     fetchBlocklist: () => Promise<string[]>;
-    fetchStatus: (jid: string) => Promise<{
-        status: string | undefined;
+    fetchStatus: (...jids: string[]) => Promise<{
+        user: string;
+        status: string | null;
         setAt: Date;
-    } | undefined>;
+    }[]>;
+    fetchDisappearingDuration: (...jids: string[]) => Promise<{
+        user: string;
+        duration: number;
+        setAt: Date;
+    }[]>;
     updateProfilePicture: (jid: string, content: import("../Types").WAMediaUpload) => Promise<void>;
     removeProfilePicture: (jid: string) => Promise<void>;
     updateProfileStatus: (status: string) => Promise<void>;
@@ -89,6 +95,8 @@ export declare const makeGroupsSocket: (config: SocketConfig) => {
         createBufferedFunction<A extends any[], T_1>(work: (...args: A) => Promise<T_1>): (...args: A) => Promise<T_1>;
         flush(force?: boolean | undefined): boolean;
         isBuffering(): boolean;
+        ping: number;
+        lastPings: number[];
     };
     authState: {
         creds: import("../Types").AuthenticationCreds;

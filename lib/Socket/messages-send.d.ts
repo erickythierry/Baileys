@@ -2,11 +2,11 @@
 import { Boom } from '@hapi/boom';
 import { proto } from '../../WAProto';
 import { AnyMessageContent, MediaConnInfo, MessageReceiptType, MessageRelayOptions, MiscMessageGenerationOptions, SocketConfig, WAMessageKey } from '../Types';
-import { BinaryNode } from '../WABinary';
+import { BinaryNode, JidWithDevice } from '../WABinary';
 export declare const makeMessagesSocket: (config: SocketConfig) => {
     getPrivacyTokens: (jids: string[]) => Promise<BinaryNode>;
     assertSessions: (jids: string[], force: boolean) => Promise<boolean>;
-    relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, cachedGroupMetadata, statusJidList }: MessageRelayOptions) => Promise<string>;
+    relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: WAMessageKey[], type: MessageReceiptType) => Promise<void>;
     getButtonArgs: (message: proto.IMessage) => BinaryNode['attrs'];
@@ -15,6 +15,11 @@ export declare const makeMessagesSocket: (config: SocketConfig) => {
     waUploadToServer: import("../Types").WAMediaUploadFunction;
     fetchPrivacySettings: (force?: boolean) => Promise<{
         [_: string]: string;
+    }>;
+    getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<JidWithDevice[]>;
+    createParticipantNodes: (jids: string[], message: proto.IMessage, extraAttrs?: BinaryNode['attrs']) => Promise<{
+        nodes: BinaryNode[];
+        shouldIncludeDeviceIdentity: boolean;
     }>;
     updateMediaMessage: (message: proto.IWebMessageInfo) => Promise<proto.IWebMessageInfo>;
     sendMessage: (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<proto.WebMessageInfo | undefined>;
@@ -27,7 +32,7 @@ export declare const makeMessagesSocket: (config: SocketConfig) => {
     }[]>;
     groupRequestParticipantsUpdate: (jid: string, participants: string[], action: "reject" | "approve") => Promise<{
         status: string;
-        jid: string; /** Bulk read messages. Keys can be from different chats & participants */
+        jid: string;
     }[]>;
     groupParticipantsUpdate: (jid: string, participants: string[], action: import("../Types").ParticipantAction) => Promise<{
         status: string;
@@ -60,10 +65,16 @@ export declare const makeMessagesSocket: (config: SocketConfig) => {
         jid: string;
     }[]>;
     fetchBlocklist: () => Promise<string[]>;
-    fetchStatus: (jid: string) => Promise<{
-        status: string | undefined;
+    fetchStatus: (...jids: string[]) => Promise<{
+        user: string;
+        status: string | null;
         setAt: Date;
-    } | undefined>;
+    }[]>;
+    fetchDisappearingDuration: (...jids: string[]) => Promise<{
+        user: string;
+        duration: number;
+        setAt: Date;
+    }[]>;
     updateProfilePicture: (jid: string, content: import("../Types").WAMediaUpload) => Promise<void>;
     removeProfilePicture: (jid: string) => Promise<void>;
     updateProfileStatus: (status: string) => Promise<void>;
@@ -96,6 +107,8 @@ export declare const makeMessagesSocket: (config: SocketConfig) => {
         createBufferedFunction<A extends any[], T_1>(work: (...args: A) => Promise<T_1>): (...args: A) => Promise<T_1>;
         flush(force?: boolean | undefined): boolean;
         isBuffering(): boolean;
+        ping: number;
+        lastPings: number[];
     };
     authState: {
         creds: import("../Types").AuthenticationCreds;

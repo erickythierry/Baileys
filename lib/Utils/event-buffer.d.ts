@@ -25,6 +25,9 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
     flush(force?: boolean): boolean;
     /** is there an ongoing buffer */
     isBuffering(): boolean;
+    /** diff of ping */
+    ping: number;
+    lastPings: number[];
 };
 /**
  * The event buffer logically consolidates different events into a single event

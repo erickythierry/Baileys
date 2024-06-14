@@ -17,6 +17,8 @@ export declare const makeSocket: (config: SocketConfig) => {
         createBufferedFunction<A extends any[], T>(work: (...args: A) => Promise<T>): (...args: A) => Promise<T>;
         flush(force?: boolean | undefined): boolean;
         isBuffering(): boolean;
+        ping: number;
+        lastPings: number[];
     };
     authState: {
         creds: import("../Types").AuthenticationCreds;
