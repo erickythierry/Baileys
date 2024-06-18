@@ -74,6 +74,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	linkPreviewImageThumbnailWidth: 192,
 	customUploadHosts: [],
 	blacklistLinkPreview: [],
+	forceGroupsPrekeys: true,
 	transactionOpts: {
 		maxCommitRetries: 20,
 		delayBetweenTriesMs: 500
