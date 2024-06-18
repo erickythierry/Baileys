@@ -32,11 +32,9 @@ import {
 	getBinaryNodeChild,
 	getBinaryNodeChildBuffer,
 	getBinaryNodeChildren,
-	isJidGroup,
-	isJidStatusBroadcast,
+	isJidGroup, isJidStatusBroadcast,
 	isJidUser,
 	jidDecode,
-	jidEncode,
 	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
@@ -49,10 +47,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		retryRequestDelayMs,
 		maxMsgRetryCount,
 		getMessage,
-		shouldIgnoreJid,
-		shouldIgnoreParticipant,
-		ignoreOfflineMessages,
-		resendReceipt
+		shouldIgnoreJid
 	} = config
 	const sock = makeMessagesSocket(config)
 	const {
@@ -70,8 +65,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		relayMessage,
 		sendReceipt,
 		uploadPreKeys,
-		createParticipantNodes,
-		getUSyncDevices,
 	} = sock
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
@@ -119,75 +112,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
-	const offerCall = async (toJid: string, isVideo: boolean = false) => {
-		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
-
-		const offerContent: BinaryNode[] = []
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
-
-		if (isVideo) {
-			offerContent.push({
-				tag: 'video',
-				attrs: {
-					orientation: '0',
-					'screen_width': '1920',
-					'screen_height': '1080',
-					'device_orientation': '0',
-					enc: 'vp8',
-					dec: 'vp8',
-				}
-			})
-		}
-
-		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
-		offerContent.push({ tag: 'capability', attrs: { ver: '1' }, content: new Uint8Array([1, 4, 255, 131, 207, 4]) })
-		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
-
-		const encKey = randomBytes(32)
-
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, 's.whatsapp.net', device))
-
-		await assertSessions(devices, true)
-
-		const { nodes: destinations, shouldIncludeDeviceIdentity } = await createParticipantNodes(devices, {
-			call: {
-				callKey: encKey
-			}
-		})
-
-		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
-
-		if (shouldIncludeDeviceIdentity) {
-			offerContent.push({
-				tag: 'device-identity',
-				attrs: {},
-				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
-			})
-		}
-
-		const stanza: BinaryNode = ({
-			tag: 'call',
-			attrs: {
-				to: toJid,
-			},
-			content: [{
-				tag: 'offer',
-				attrs: {
-					'call-id': callId,
-					'call-creator': authState.creds.me!.id,
-				},
-				content: offerContent,
-			}],
-		})
-		await query(stanza)
-		return {
-			callId,
-			toJid,
-			isVideo,
-		}
-	}
-
 	const rejectCall = async(callId: string, callFrom: string) => {
 		const stanza: BinaryNode = ({
 			tag: 'call',
@@ -209,18 +133,17 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const sendRetryRequest = async(node: BinaryNode, forceIncludeKeys = false) => {
-		const { id: msgId, participant } = node.attrs
+		const msgId = node.attrs.id
 
-		const key = `${msgId}:${participant}`
-		let retryCount = msgRetryCache.get<number>(key) || 0
+		let retryCount = msgRetryCache.get<number>(msgId) || 0
 		if(retryCount >= maxMsgRetryCount) {
 			logger.debug({ retryCount, msgId }, 'reached retry limit, clearing')
-			msgRetryCache.del(key)
+			msgRetryCache.del(msgId)
 			return
 		}
 
 		retryCount += 1
-		msgRetryCache.set(key, retryCount)
+		msgRetryCache.set(msgId, retryCount)
 
 		const { account, signedPreKey, signedIdentityKey: identityKey } = authState.creds
 
@@ -345,11 +268,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				}
 			}
 			break
-		case 'modify':
-			const oldNumber = getBinaryNodeChildren(child, 'participant').map(p => p.attrs.jid)
-			msg.messageStubParameters = oldNumber || []
-			msg.messageStubType = WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER
-			break
 		case 'promote':
 		case 'demote':
 		case 'remove':
@@ -424,9 +342,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const from = jidNormalizedUser(node.attrs.from)
 
 		switch (nodeType) {
-		case 'mex':
-		case 'newsletter':
-			break
 		case 'privacy_token':
 			const tokenList = getBinaryNodeChildren(child, 'token')
 			for(const { attrs, content } of tokenList) {
@@ -577,7 +492,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			})
 			authState.creds.registered = true
 			ev.emit('creds.update', authState.creds)
-			break
 		}
 
 		if(Object.keys(result).length) {
@@ -676,12 +590,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			return
 		}
 
-		if(isJidGroup(attrs.from) && shouldIgnoreParticipant(attrs.participant)){
-			logger.debug({ remoteJid }, 'ignoring receipt from participant')
-			await sendMessageAck(node)
-			return
-		}
-
 		const ids = [attrs.id]
 		if(Array.isArray(content)) {
 			const items = getBinaryNodeChildren(content[0], 'item')
@@ -695,7 +603,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					if(
 						typeof status !== 'undefined' &&
 						(
-							// basically, we only want to know when a message from us has been delivered to/read by the other person or another device of ours has read some messages
+							// basically, we only want to know when a message from us has been delivered to/read by the other person
+							// or another device of ours has read some messages
 							status > proto.WebMessageInfo.Status.DELIVERY_ACK ||
 							!isNodeFromMe
 						)
@@ -725,18 +634,20 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						}
 					}
 
-					key.participant = key.participant || attrs.from
-
-					if(attrs.type === 'retry' && key.fromMe && resendReceipt) {
-						if (willSendMessageAgain(ids[0], key.participant)){
-							const retryUser: number = msgRetryCache.get(key.participant) || 0
-							if (retryUser < 2){
-								logger.debug({ attrs, key }, 'recv retry request')
-								const retryNode = getBinaryNodeChild(node, 'retry')
-								await sendMessagesAgain(key, ids, retryNode!)
-								msgRetryCache.set(key.participant, retryUser + 1)
+					if(attrs.type === 'retry') {
+						// correctly set who is asking for the retry
+						key.participant = key.participant || attrs.from
+						const retryNode = getBinaryNodeChild(node, 'retry')
+						if(willSendMessageAgain(ids[0], key.participant)) {
+							if(key.fromMe) {
+								try {
+									logger.debug({ attrs, key }, 'recv retry request')
+									await sendMessagesAgain(key, ids, retryNode!)
+								} catch(error) {
+									logger.error({ key, ids, trace: error.stack }, 'error in sending message again')
+								}
 							} else {
-								logger.info({ attrs, key }, 'will not send message again, reached retry limit for user')
+								logger.info({ attrs, key }, 'recv retry for not fromMe message')
 							}
 						} else {
 							logger.info({ attrs, key }, 'will not send message again, as sent too many times')
@@ -750,20 +661,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const handleNotification = async(node: BinaryNode) => {
 		const remoteJid = node.attrs.from
-
-		if (!node.attrs?.from){
-			logger.debug({ remoteJid, id: node.attrs.id }, 'ignored null jid')
-			await sendMessageAck(node)
-			return
-		}
-
 		if(shouldIgnoreJid(remoteJid) && remoteJid !== '@s.whatsapp.net') {
-			logger.debug({ remoteJid, id: node.attrs.id }, 'ignored notification')
-			await sendMessageAck(node)
-			return
-		}
-
-		if(isJidGroup(remoteJid) && shouldIgnoreParticipant(node.attrs.participant)){
 			logger.debug({ remoteJid, id: node.attrs.id }, 'ignored notification')
 			await sendMessageAck(node)
 			return
@@ -795,25 +693,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleMessage = async(node: BinaryNode) => {
-		if (!node.attrs?.from){
-			logger.debug({ from: node.attrs?.from || null, id: node.attrs.id }, 'ignored null jid')
-			await sendMessageAck(node)
-			return
-		}
-	
-    	if(ignoreOfflineMessages && node.attrs.offline) {
-			logger.debug({ key: node.attrs.key }, 'ignored offline message')
-			await sendMessageAck(node)
-			return
-		}
-
-		if(isJidGroup(node.attrs.from) && shouldIgnoreParticipant(node.attrs.participant)){
-			logger.debug({ key: node.attrs.key }, 'ignored participant message')
-      		await sendMessageAck(node)
-			return
-		}
-
-		if(shouldIgnoreJid(node.attrs.from!) && node.attrs.from! !== '@s.whatsapp.net' && !areJidsSameUser(node.attrs.from!, authState.creds.me!.id)) {
+		if(shouldIgnoreJid(node.attrs.from!) && node.attrs.from! !== '@s.whatsapp.net') {
 			logger.debug({ key: node.attrs.key }, 'ignored message')
 			await sendMessageAck(node)
 			return
@@ -1039,7 +919,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		...sock,
 		sendMessageAck,
 		sendRetryRequest,
-		rejectCall,
-		offerCall
+		rejectCall
 	}
 }

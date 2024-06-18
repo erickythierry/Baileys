@@ -21,11 +21,6 @@ export declare const makeRegistrationSocket: (config: SocketConfig) => {
     sendMessageAck: ({ tag, attrs, content }: import("../WABinary").BinaryNode) => Promise<void>;
     sendRetryRequest: (node: import("../WABinary").BinaryNode, forceIncludeKeys?: boolean) => Promise<void>;
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
-    offerCall: (toJid: string, isVideo?: boolean) => Promise<{
-        callId: string;
-        toJid: string;
-        isVideo: boolean;
-    }>;
     getPrivacyTokens: (jids: string[]) => Promise<import("../WABinary").BinaryNode>;
     assertSessions: (jids: string[], force: boolean) => Promise<boolean>;
     relayMessage: (jid: string, message: import("../Types").WAProto.IMessage, { messageId: msgId, participant, additionalAttributes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: import("../Types").MessageRelayOptions) => Promise<string>;
