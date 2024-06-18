@@ -328,7 +328,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		msgId = msgId || generateMessageID()
 		useUserDevicesCache = useUserDevicesCache !== false
-		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus && !!cachedGroupMetadata
+		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
 
 		const participants: BinaryNode[] = []
 		const destinationJid = (!isStatus) ? jidEncode(user, isLid ? 'lid' : isGroup ? 'g.us' : 's.whatsapp.net') : statusJid
@@ -360,12 +360,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				if(isGroup || isStatus) {
 					const [groupData, senderKeyMap] = await Promise.all([
 						(async() => {
-							let groupData = useCachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined
-							if(groupData) {
+							let groupData = useCachedGroupMetadata && cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined
+							if(groupData && Array.isArray(groupData?.participants)) {
 								logger.trace({ jid, participants: groupData.participants.length }, 'using cached group metadata')
-							}
-
-							if(!groupData && !isStatus) {
+							} else {
 								groupData = await groupMetadata(jid)
 							}
 
@@ -690,7 +688,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 									}
 
 									content.directPath = media.directPath
-									content.url = getUrlFromDirectPath(content.directPath!)
+									content.url = getUrlFromDirectPath(content.directPath)
 
 									logger.debug({ directPath: media.directPath, key: result.key }, 'media update successful')
 								} catch(err) {
